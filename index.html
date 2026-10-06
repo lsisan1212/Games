@@ -1,1563 +1,278 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rummikub</title>
+<title>Games</title>
+<meta name="description" content="單檔網頁遊戲合集 —— 零依賴、離線可用">
 <style>
+  :root{
+    --radius:14px; --maxw:1100px;
+    --font:system-ui,-apple-system,"Segoe UI",Roboto,"PingFang TC","Microsoft YaHei",sans-serif;
+  }
+  html[data-theme="dark"]{
+    --bg:#0a1b13; --bg2:#0e241a; --panel:#12291e; --panel2:#173324;
+    --text:#e8f0ea; --muted:#93ab9c; --accent:#ffd54f; --accent2:#1b5e20;
+    --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.20);
+    --shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  html[data-theme="light"]{
+    --bg:#f4f7f4; --bg2:#ffffff; --panel:#ffffff; --panel2:#f0f5f1;
+    --text:#152a1f; --muted:#5c7266; --accent:#1b7a3f; --accent2:#e4f2e8;
+    --border:rgba(0,0,0,.10); --border2:rgba(0,0,0,.20);
+    --shadow:0 8px 24px rgba(0,0,0,.08);
+  }
+  html[data-theme="ocean"]{
+    --bg:#061a2b; --bg2:#0a2337; --panel:#0d2b42; --panel2:#123850;
+    --text:#e6f2fb; --muted:#8fb2cc; --accent:#4fc3f7; --accent2:#0d3b57;
+    --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.22);
+    --shadow:0 8px 24px rgba(0,0,0,.38);
+  }
+  html[data-theme="sunset"]{
+    --bg:#241220; --bg2:#31182b; --panel:#3b1c2b; --panel2:#4a2434;
+    --text:#fdeef3; --muted:#c3a0af; --accent:#ff8a65; --accent2:#5b2b3d;
+    --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.22);
+    --shadow:0 8px 24px rgba(0,0,0,.38);
+  }
   *{box-sizing:border-box;}
-  html,body{height:100%;margin:0;}
+  html,body{margin:0;padding:0;}
   body{
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"PingFang TC","Microsoft YaHei",sans-serif;
-    background:radial-gradient(circle at 50% -10%,#1e6b44,#0b2c1d 65%,#071a11);
-    color:#eee;display:flex;flex-direction:column;overflow:hidden;
+    font-family:var(--font); background:var(--bg); color:var(--text);
+    min-height:100vh; display:flex; flex-direction:column;
+    -webkit-font-smoothing:antialiased;
   }
-  /* ---------- top bar ---------- */
-  #topbar{
-    display:flex;align-items:center;gap:10px;padding:8px 14px;flex-wrap:wrap;
-    background:rgba(0,0,0,.38);border-bottom:1px solid rgba(255,255,255,.08);
-    box-shadow:0 2px 10px rgba(0,0,0,.4);z-index:5;
-  }
-  .brand{font-weight:900;letter-spacing:2px;color:#ffd54f;font-size:15px;}
-  #players{display:flex;gap:8px;flex-wrap:wrap;}
-  .p{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;
-     background:rgba(255,255,255,.07);font-size:13px;transition:.2s;}
-  .p.current{background:#ffd54f;color:#1a1a1a;font-weight:700;
-             box-shadow:0 0 14px rgba(255,213,79,.55);}
-  .p .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
-  .cnt{background:rgba(0,0,0,.25);border-radius:10px;padding:0 7px;font-size:12px;
-       display:inline-flex;align-items:center;gap:3px;}
-  .p.current .cnt{background:rgba(0,0,0,.14);}
-  .cnt.turns{background:rgba(255,213,79,.18);color:#ffd54f;}
-  .p.current .cnt.turns{background:rgba(0,0,0,.18);color:#1a1a1a;}
-  .meld{color:#66bb6a;font-weight:800;}
-  .p.current .meld{color:#1b5e20;}
-  #timerInfo{font-size:13px;opacity:.95;white-space:nowrap;font-weight:700;
-             color:#ffd54f;background:rgba(0,0,0,.3);padding:4px 10px;border-radius:8px;
-             border:1px solid rgba(255,213,79,.25);font-variant-numeric:tabular-nums;}
-  #poolInfo{margin-left:auto;font-size:13px;opacity:.85;white-space:nowrap;}
-  .mini{background:rgba(255,255,255,.12);color:#eee;border:1px solid rgba(255,255,255,.2);
-        border-radius:8px;padding:5px 12px;cursor:pointer;font-size:12px;transition:.15s;}
-  .mini:hover{background:rgba(255,255,255,.22);}
-  .mini.active{background:#ffd54f;color:#1a1a1a;border-color:#ffd54f;font-weight:700;}
-  .mini.hintOn{background:#ffb300;color:#1a1a1a;border-color:#ffb300;font-weight:700;}
+  a{color:inherit;text-decoration:none;}
 
-  /* ---------- table ---------- */
-  #tableArea{
-    flex:1;overflow:auto;padding:18px;display:flex;flex-wrap:wrap;
-    gap:14px;align-content:flex-start;
+  header{
+    position:sticky; top:0; z-index:10;
+    background:var(--bg2); border-bottom:1px solid var(--border);
+    backdrop-filter:saturate(140%) blur(8px);
   }
-  #tableArea .empty{margin:auto;opacity:.35;font-size:15px;letter-spacing:1px;text-align:center;}
-  .group{
-    display:flex;gap:4px;padding:8px;border-radius:10px;
-    background:rgba(255,255,255,.05);border:2px solid transparent;
-    transition:background .15s,border-color .15s,box-shadow .15s;cursor:default;
-  }
-  .group.ok{border-color:rgba(255,255,255,.1);}
-  .group.bad{border-color:#ef5350;background:rgba(239,83,80,.14);}
-  .group.ok:hover{background:rgba(255,255,255,.13);}
-  .group.hint{border-color:#ffd54f;box-shadow:0 0 16px rgba(255,213,79,.55);}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px;width:100%;}
+  .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 0;}
+  .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto;}
+  .brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:1.5px;color:var(--accent);}
+  .brand span{font-size:12.5px;color:var(--muted);}
 
-  /* ---------- tiles ---------- */
-  .tile-wrap{position:relative;flex:0 0 auto;}
-  .tile{
-    width:42px;height:58px;border-radius:7px;background:#fbfbfb;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:900;font-size:22px;cursor:pointer;user-select:none;
-    box-shadow:0 2px 5px rgba(0,0,0,.45);border:1px solid #cfcfcf;
-    transition:transform .1s,box-shadow .1s,outline .1s;
+  .themes{display:flex;gap:6px;}
+  .theme{
+    background:var(--panel); color:var(--muted); border:1px solid var(--border);
+    border-radius:999px; padding:5px 12px; font-size:12px; cursor:pointer;
+    font-family:inherit; transition:.15s;
   }
-  .tile:hover{transform:translateY(-4px);box-shadow:0 6px 10px rgba(0,0,0,.5);}
-  .tile.red{color:#d32f2f;}
-  .tile.blue{color:#1565c0;}
-  .tile.yellow{color:#f9a825;}
-  .tile.black{color:#212121;}
-  .tile.joker{
-    background:linear-gradient(135deg,#ef5350,#ffa726,#66bb6a,#42a5f5);
-    color:#fff;font-size:24px;text-shadow:0 1px 3px rgba(0,0,0,.5);
-  }
-  .tile.selected{
-    outline:3px solid #00e676;outline-offset:1px;
-    transform:translateY(-8px);box-shadow:0 8px 14px rgba(0,0,0,.55);
-  }
-  .tile.hint{outline:3px dashed #ffd54f;outline-offset:1px;}
-  .tile.dim{opacity:.5;cursor:default;}
-  .tile.dim:hover{transform:none;box-shadow:0 2px 5px rgba(0,0,0,.45);}
-  .tile-cross{
-    position:absolute;top:-6px;right:-6px;width:17px;height:17px;border-radius:50%;
-    background:#e53935;color:#fff;font-size:12px;line-height:16px;text-align:center;
-    font-weight:900;cursor:pointer;z-index:3;
-    box-shadow:0 1px 4px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.5);
-    transition:transform .12s,background .12s;user-select:none;
-  }
-  .tile-cross:hover{background:#ff1744;transform:scale(1.25);}
-  .sep{width:2px;height:42px;background:rgba(255,255,255,.18);
-       border-radius:1px;flex:0 0 auto;align-self:center;margin:0 4px;}
+  .theme:hover{border-color:var(--border2);color:var(--text);}
+  .theme[aria-pressed="true"]{background:var(--accent);color:var(--accent2);border-color:var(--accent);font-weight:700;}
 
-  /* ---------- hand ---------- */
-  #handBar{background:rgba(0,0,0,.4);border-top:1px solid rgba(255,255,255,.1);padding:8px 14px 4px;}
-  #handTop{display:flex;align-items:center;justify-content:space-between;
-           gap:12px;margin-bottom:6px;flex-wrap:wrap;}
-  #handLabel{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;}
-  #sortBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  .sortLbl{font-size:11px;letter-spacing:1px;text-transform:uppercase;opacity:.5;}
-  #handArea{display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;min-height:66px;}
-  #handArea:empty::after{content:"—";opacity:.3;font-size:13px;}
+  .search{
+    display:flex;align-items:center;gap:8px;background:var(--panel);
+    border:1px solid var(--border); border-radius:10px; padding:7px 12px; min-width:220px;
+  }
+  .search input{
+    background:transparent;border:0;outline:0;color:var(--text);
+    font-family:inherit;font-size:13.5px;width:100%;
+  }
+  .search input::placeholder{color:var(--muted);}
 
-  /* ---------- controls ---------- */
-  #controls{display:flex;gap:10px;padding:10px 14px 14px;background:rgba(0,0,0,.4);flex-wrap:wrap;}
-  #controls button{
-    flex:1;min-width:105px;padding:11px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.18);
-    background:rgba(255,255,255,.1);color:#eee;font-size:14px;font-weight:600;
-    cursor:pointer;transition:.15s;
-  }
-  #controls button:hover:not(:disabled){background:rgba(255,255,255,.22);}
-  #controls button:disabled{opacity:.32;cursor:not-allowed;}
-  #controls button.primary{background:#2e7d32;border-color:#43a047;}
-  #controls button.primary:hover:not(:disabled){background:#388e3c;}
+  main{flex:1;padding:26px 0 40px;}
+  .meta{display:flex;align-items:center;justify-content:space-between;gap:12px;
+        font-size:12.5px;color:var(--muted);margin-bottom:14px;flex-wrap:wrap;}
 
-  /* ---------- toast ---------- */
-  #toast{
-    position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-16px);
-    background:#c62828;color:#fff;padding:10px 20px;border-radius:9px;
-    font-size:14px;font-weight:600;opacity:0;pointer-events:none;
-    transition:.25s;z-index:50;max-width:90vw;text-align:center;
-    box-shadow:0 6px 20px rgba(0,0,0,.5);
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;}
+  .card{
+    display:flex;flex-direction:column;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--card-accent,var(--accent));
+    border-radius:var(--radius);padding:18px;transition:.18s;box-shadow:var(--shadow);
   }
-  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  #toast.good{background:#2e7d32;}
+  .card:hover{transform:translateY(-3px);border-color:var(--border2);
+              border-left-color:var(--card-accent,var(--accent));}
+  .card .top{display:flex;align-items:center;gap:12px;}
+  .card .ico{font-size:26px;line-height:1;}
+  .card h2{margin:0;font-size:16px;font-weight:700;}
+  .card .zh{font-size:12.5px;color:var(--muted);font-weight:400;margin-left:6px;}
+  .card p{margin:0;font-size:13px;line-height:1.65;color:var(--muted);}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .tag{font-size:11.5px;color:var(--muted);background:var(--panel2);
+       border:1px solid var(--border);border-radius:999px;padding:2px 9px;}
+  .card .go{margin-top:auto;font-size:13px;font-weight:700;color:var(--card-accent,var(--accent));
+            display:flex;align-items:center;gap:6px;}
 
-  /* ---------- overlays ---------- */
-  .overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;
-    align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px);
-    padding:16px;overflow:auto;
+  .empty{
+    text-align:center;padding:52px 20px;border:1px dashed var(--border2);
+    border-radius:var(--radius);color:var(--muted);
   }
-  .overlay.hidden{display:none;}
-  .modal{
-    background:#12331f;border:1px solid rgba(255,255,255,.15);border-radius:16px;
-    padding:26px 30px;max-width:600px;width:100%;text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,.7);max-height:92vh;overflow:auto;
-  }
-  .modal h1{font-size:28px;letter-spacing:4px;color:#ffd54f;margin:0 0 4px;}
-  .modal h2{margin:0 0 12px;color:#ffd54f;font-size:23px;}
-  .modal p{margin:8px 0;font-size:14px;line-height:1.6;opacity:.92;text-align:left;}
-  .modal ul{margin:8px 0;padding-left:20px;font-size:14px;line-height:1.65;text-align:left;}
-  .modal li{margin:5px 0;}
-  .modal table{margin:14px auto;border-collapse:collapse;font-size:14px;}
-  .modal td{padding:5px 14px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left;}
-  .modal td.num{text-align:right;font-variant-numeric:tabular-nums;}
-  .modal button.primary{
-    margin-top:16px;padding:12px 32px;border-radius:9px;border:none;
-    background:#2e7d32;color:#fff;font-size:15px;font-weight:700;cursor:pointer;
-  }
-  .modal button.primary:hover{background:#388e3c;}
-  .modal button.ghost{
-    margin-top:10px;padding:9px 22px;border-radius:9px;
-    background:transparent;color:#ffd54f;border:1px solid rgba(255,213,79,.5);
-    font-size:13px;font-weight:600;cursor:pointer;
-  }
-  .modal button.ghost:hover{background:rgba(255,213,79,.12);}
-  .timeBig{
-    font-size:32px;font-weight:900;color:#ffd54f;letter-spacing:2px;
-    font-variant-numeric:tabular-nums;margin:6px 0 12px;
-  }
+  .empty strong{display:block;color:var(--text);font-size:15px;margin-bottom:6px;}
 
-  /* ---------- setup ---------- */
-  .setup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
-  .setup-head select{
-    background:#0d2417;color:#eee;border:1px solid rgba(255,255,255,.2);
-    border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;
+  .hint{
+    margin-top:26px;background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px 18px;font-size:13px;color:var(--muted);line-height:1.7;
   }
-  .field{margin:14px 0;text-align:left;}
-  .field label{display:block;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;
-               opacity:.6;margin-bottom:6px;}
-  .field input{
-    width:100%;padding:11px 14px;border-radius:9px;font-size:15px;
-    background:#0d2417;color:#eee;border:1px solid rgba(255,255,255,.2);
-  }
-  .field input:focus{outline:none;border-color:#ffd54f;}
-  .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 6px;}
-  @media(max-width:520px){.modes{grid-template-columns:1fr;}}
-  .modeBtn{
-    display:flex;flex-direction:column;align-items:center;gap:8px;
-    padding:16px 10px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:600;
-    background:rgba(255,255,255,.07);color:#eee;border:2px solid rgba(255,255,255,.12);
-    transition:.18s;
-  }
-  .modeBtn:hover{background:rgba(255,255,255,.16);transform:translateY(-2px);}
-  .modeBtn.sel{border-color:#ffd54f;background:rgba(255,213,79,.15);}
-  .modeIcon{font-size:26px;line-height:1;}
-  .lobby{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);}
-  .lobby.hidden{display:none;}
-  .lobby-actions{display:flex;gap:10px;}
-  .lobby-actions button{
-    flex:1;padding:11px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;
-    background:rgba(255,255,255,.1);color:#eee;border:1px solid rgba(255,255,255,.2);
-  }
-  .lobby-actions button:hover{background:rgba(255,255,255,.22);}
-  .joinBox{display:flex;gap:8px;margin-top:12px;}
-  .joinBox input{
-    flex:1;padding:11px 14px;border-radius:9px;font-size:17px;letter-spacing:4px;
-    text-align:center;text-transform:uppercase;font-weight:800;
-    background:#0d2417;color:#ffd54f;border:1px solid rgba(255,255,255,.2);
-  }
-  .codeRow{display:flex;align-items:center;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap;}
-  .codeLabel{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;opacity:.6;}
-  .code{
-    font-size:26px;font-weight:900;letter-spacing:6px;color:#ffd54f;
-    background:rgba(0,0,0,.35);padding:6px 14px;border-radius:9px;
-    border:1px dashed rgba(255,213,79,.4);
-  }
-  .shareRow{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:12px 0;}
-  .shareBtn{
-    display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;
-    font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;
-    background:rgba(255,255,255,.1);color:#eee;border:1px solid rgba(255,255,255,.18);
-    transition:.15s;
-  }
-  .shareBtn:hover{background:rgba(255,255,255,.24);}
-  .lobbyPlayers{margin:14px 0;display:flex;flex-direction:column;gap:6px;}
-  .lobbyPlayer{
-    display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:9px;
-    background:rgba(255,255,255,.06);font-size:13px;
-  }
-  .lobbyPlayer .dot{width:9px;height:9px;border-radius:50%;}
-  .statusMsg{margin-top:12px;font-size:13px;opacity:.8;min-height:18px;}
-  .statusMsg.err{color:#ef5350;opacity:1;font-weight:600;}
-  .statusMsg.ok{color:#66bb6a;opacity:1;font-weight:600;}
-
-  #readyOverlay{z-index:90;}
-  #readyOverlay .modal{max-width:380px;}
-
-  #handArea::-webkit-scrollbar,#tableArea::-webkit-scrollbar{height:8px;width:8px;}
-  #handArea::-webkit-scrollbar-thumb,#tableArea::-webkit-scrollbar-thumb{
-    background:rgba(255,255,255,.2);border-radius:4px;}
+  .hint b{color:var(--text);}
+  .hint code{background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+             padding:1px 6px;font-size:12.5px;}
+  footer{border-top:1px solid var(--border);padding:16px 0;font-size:12px;color:var(--muted);}
+  footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 </style>
 </head>
 <body>
-
-<div id="topbar">
-  <div class="brand">RUMMIKUB</div>
-  <div id="players"></div>
-  <div id="timerInfo">⏱ 00:00</div>
-  <div id="poolInfo"></div>
-  <button id="btnHints" class="mini" title="Hints">💡</button>
-  <button id="btnRulesTop" class="mini" title="Rules">?</button>
-  <button id="btnNew" class="mini" data-i18n="menu">Menu</button>
-</div>
-
-<div id="tableArea"></div>
-
-<div id="handBar">
-  <div id="handTop">
-    <div id="handLabel"></div>
-    <div id="sortBar">
-      <span class="sortLbl" data-i18n="sort"></span>
-      <button class="mini sortBtn active" data-mode="color" data-i18n="sortColor"></button>
-      <button class="mini sortBtn" data-mode="number" data-i18n="sortNumber"></button>
-      <button class="mini sortBtn" data-mode="group" data-i18n="sortGroup"></button>
-    </div>
-  </div>
-  <div id="handArea"></div>
-</div>
-
-<div id="controls">
-  <button id="btnDraw" data-i18n="draw"></button>
-  <button id="btnNewGroup" data-i18n="newGroup"></button>
-  <button id="btnReset" data-i18n="reset"></button>
-  <button id="btnEnd" class="primary" data-i18n="endTurn"></button>
-</div>
-
-<div id="toast"></div>
-
-<!-- ============ SETUP ============ -->
-<div id="setup" class="overlay">
-  <div class="modal">
-    <div class="setup-head">
-      <h1 style="margin:0">RUMMIKUB</h1>
-      <select id="selLang">
-        <option value="en">English</option>
-        <option value="zhTW">繁體中文</option>
-        <option value="zhCN">简体中文</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label data-i18n="yourName"></label>
-      <input id="inputName" maxlength="12" autocomplete="off">
-    </div>
-
-    <div class="modes">
-      <button class="modeBtn sel" data-mode="single">
-        <span class="modeIcon">🤖</span><span data-i18n="singlePlayer"></span>
-      </button>
-      <button class="modeBtn" data-mode="local">
-        <span class="modeIcon">👥</span><span data-i18n="passAndPlay"></span>
-      </button>
-      <button class="modeBtn" data-mode="online">
-        <span class="modeIcon">🌐</span><span data-i18n="onlineRoom"></span>
-      </button>
-    </div>
-
-    <div id="lobby" class="lobby hidden">
-      <div id="lobbyChoice">
-        <div class="lobby-actions">
-          <button id="btnCreate" data-i18n="createRoom"></button>
-          <button id="btnJoin" data-i18n="joinRoom"></button>
-        </div>
+<header>
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand">
+        <h1 id="siteTitle">Games</h1>
+        <span id="siteSub">單檔網頁遊戲合集 · 零依賴 · 離線可用</span>
       </div>
-      <div id="joinBox" class="joinBox hidden">
-        <input id="inputCode" maxlength="6" placeholder="ABC123" autocomplete="off">
-        <button id="btnJoinGo" class="mini" style="padding:11px 18px" data-i18n="join"></button>
+      <div class="themes" id="themes">
+        <button class="theme" data-set="dark"   aria-pressed="true">深色</button>
+        <button class="theme" data-set="light"  aria-pressed="false">淺色</button>
+        <button class="theme" data-set="ocean"  aria-pressed="false">海洋</button>
+        <button class="theme" data-set="sunset" aria-pressed="false">日落</button>
       </div>
-      <div id="roomBox" class="hidden">
-        <div class="codeRow">
-          <span class="codeLabel" data-i18n="roomCode"></span>
-          <span id="codeDisplay" class="code">------</span>
-          <button id="btnCopy" class="mini" data-i18n="copy"></button>
-        </div>
-        <div class="shareRow" id="shareRow"></div>
-        <div class="lobbyPlayers" id="lobbyPlayers"></div>
-        <button id="btnStart" class="primary" data-i18n="startGame"></button>
-      </div>
-      <div id="statusMsg" class="statusMsg"></div>
+      <label class="search">
+        <span aria-hidden="true">🔍</span>
+        <input id="q" type="search" placeholder="搜尋遊戲 / 標籤…" autocomplete="off">
+      </label>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="meta">
+      <span id="count">載入中…</span>
+      <span id="src"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <strong>搵唔到符合嘅遊戲</strong>
+      <span>試下換個關鍵字，或者清空搜尋框。</span>
     </div>
 
-    <button id="btnRules" class="ghost" data-i18n="howToPlay"></button>
-    <button id="btnPlay" class="primary" data-i18n="play"></button>
+    <div class="hint">
+      <b>加新遊戲（3 步）</b><br>
+      1. 把單檔 HTML 丟落 repo 根目錄（例如 <code>ChessTrainer.html</code>）<br>
+      2. 喺 <code>games.json</code> 嘅 <code>games</code> 陣列加一項（標題／中文名／描述／emoji／強調色／標籤）<br>
+      3. <code>git push</code> → 約 30–60 秒後生效<br>
+      <span style="opacity:.75">漏咗第 2 步都會自動顯示（由檔名推導標題），但補上 JSON 才會有中文名、描述同標籤。</span>
+    </div>
   </div>
-</div>
+</main>
 
-<!-- ============ RULES ============ -->
-<div id="rulesOverlay" class="overlay hidden">
-  <div class="modal">
-    <h2 data-i18n="rulesTitle"></h2>
-    <div id="rulesBody"></div>
-    <button class="primary" id="btnCloseRules" data-i18n="close"></button>
+<footer>
+  <div class="wrap">
+    <span>Games · 單檔、零依賴</span>
+    <span id="repoLink"></span>
   </div>
-</div>
-
-<!-- ============ READY GATE ============ -->
-<div id="readyOverlay" class="overlay hidden">
-  <div class="modal">
-    <h2 id="readyName"></h2>
-    <p id="readyText" style="text-align:center"></p>
-    <button class="primary" id="btnReady" data-i18n="ready"></button>
-  </div>
-</div>
-
-<!-- ============ END GAME ============ -->
-<div id="endOverlay" class="overlay hidden">
-  <div class="modal" id="endContent"></div>
-</div>
+</footer>
 
 <script>
-/* =========================================================
-   1.  I18N
-   ========================================================= */
-const I18N = {
-  en:{
-    menu:'Menu', yourName:'Your name', language:'Language',
-    singlePlayer:'Single Player', passAndPlay:'Pass & Play', onlineRoom:'Online Room',
-    createRoom:'Create Room', joinRoom:'Join Room', join:'Join', roomCode:'Room code',
-    copy:'Copy', copied:'Copied!', startGame:'Start Game', howToPlay:'How to Play',
-    play:'Play', close:'Close', ready:'Ready',
-    sort:'Sort', sortColor:'Colour', sortNumber:'Number', sortGroup:'Groups',
-    draw:'Draw Tile', newGroup:'New Group', reset:'Reset Turn', endTurn:'End Turn',
-    yourHand:'Your hand', firstMove:'Your hand  •  first move needs 30+ points',
-    thinking:'is thinking…', turnEnding:'Turn ending…', gameOver:'Game over',
-    pool:'Pool', theTableEmpty:'The table is empty — open with 30+ points',
-    hintsOn:'Hints ON', hintsOff:'Hints OFF',
-    turns:'Turns', time:'Time', timeShort:'Time', totalTime:'Total time',
-    rulesTitle:'How to Play Rummikub',
-    rulesBody:`<ul>
-      <li><b>Goal:</b> be the first to place all your tiles on the table.</li>
-      <li><b>Tiles:</b> 106 tiles — two sets of 1–13 in four colours, plus 2 jokers. Everyone starts with 14 tiles.</li>
-      <li><b>Valid groups:</b> a <i>set</i> (3–4 tiles of the same number, different colours) or a <i>run</i> (3+ consecutive numbers, all the same colour).</li>
-      <li><b>Jokers</b> can stand in for any tile. A joker used in a set/run may be swapped out later.</li>
-      <li><b>First move:</b> you must place tiles from your hand worth at least <b>30 points</b> (a joker counts as 30). You may not use tiles already on the table for your first move.</li>
-      <li><b>Your turn:</b> play tiles from your hand and/or rearrange the table, then press <i>End Turn</i>. Or press <i>Draw Tile</i> — you take one tile and your turn ends automatically.</li>
-      <li><b>Rearranging:</b> you may move and reuse tiles already on the table, but every group must be valid at the end of your turn. Press <i>Reset Turn</i> to undo everything you did this turn.</li>
-      <li><b>Taking back:</b> any tile you placed this turn shows a red × — click it to return that tile to your hand.</li>
-      <li><b>Winning:</b> the first player to empty their hand wins. Everyone else scores the total value of the tiles left in their hand (joker = 30).</li>
-    </ul>`,
-    wins:'wins!', roundScore:'Score for the round', tiles:'tiles', pts:'pts',
-    poolEmpty:'Pool exhausted — %s has the lowest hand', newGame:'New Game',
-    invalidGroup:'Some group on the table is not valid.',
-    mustPlay:'You must play at least one tile from your hand.',
-    noFirstTable:'Your first move cannot use tiles already on the table.',
-    needThirty:'First move must be worth at least 30 points (it is %s).',
-    alreadyDrew:'You already drew / played this turn.',
-    poolIsEmpty:'The pool is empty.',
-    drewAuto:'Drew a tile — turn passed automatically',
-    enterCode:'Enter a 6-character room code.',
-    connecting:'Connecting…', connected:'Connected! Waiting for host…',
-    roomCreated:'Room created. Share the code!',
-    waitingPlayers:'Waiting for players… (AI fills empty seats)',
-    hostLeft:'Host disconnected.', connLost:'Connection lost.',
-    you:'You', host:'Host', guest:'Guest',
-    onlineUnavailable:'Online play needs an internet connection.',
-    enterName:'Please enter your name.',
-    shareEmail:'Email', shareSms:'SMS', shareWhatsApp:'WhatsApp',
-    shareTelegram:'Telegram', shareWeChat:'WeChat', shareNative:'Share…',
-    wechatCopy:'Code copied — paste it into WeChat!',
-    passDevice:'Pass the device to'
-  },
-  zhTW:{
-    menu:'選單', yourName:'你的名稱', language:'語言',
-    singlePlayer:'單人遊戲', passAndPlay:'輪流遊玩', onlineRoom:'線上房間',
-    createRoom:'建立房間', joinRoom:'加入房間', join:'加入', roomCode:'房間代碼',
-    copy:'複製', copied:'已複製！', startGame:'開始遊戲', howToPlay:'遊戲規則',
-    play:'開始', close:'關閉', ready:'準備好了',
-    sort:'排序', sortColor:'顏色', sortNumber:'數字', sortGroup:'組合',
-    draw:'抽一張牌', newGroup:'新組合', reset:'重設回合', endTurn:'結束回合',
-    yourHand:'你的手牌', firstMove:'你的手牌  •  首次出牌需 30 點以上',
-    thinking:'思考中…', turnEnding:'回合結束中…', gameOver:'遊戲結束',
-    pool:'牌堆', theTableEmpty:'桌面是空的 — 首次出牌需 30 點以上',
-    hintsOn:'提示：開', hintsOff:'提示：關',
-    turns:'回合數', time:'時間', timeShort:'時間', totalTime:'總時間',
-    rulesTitle:'Rummikub 遊戲規則',
-    rulesBody:`<ul>
-      <li><b>目標：</b>最快將手上所有牌放到桌面上。</li>
-      <li><b>牌組：</b>共 106 張牌 — 四種顏色各 1–13 兩套，加上 2 張百搭牌。每人起始 14 張。</li>
-      <li><b>合法組合：</b><i>同數組</i>（3–4 張同數字、不同顏色）或<i>順組</i>（3 張以上同顏色連續數字）。</li>
-      <li><b>百搭牌</b>可代替任何牌。之後可以用真牌把百搭牌換出來。</li>
-      <li><b>首次出牌：</b>必須從手牌出牌，總點數至少 <b>30 點</b>（百搭牌算 30 點）。首次出牌不能使用桌面上已有的牌。</li>
-      <li><b>你的回合：</b>從手牌出牌、或重新排列桌面，然後按<i>結束回合</i>。或按<i>抽一張牌</i> — 抽牌後回合會自動結束。</li>
-      <li><b>重新排列：</b>可以移動及重複使用桌面上的牌，但回合結束時所有組合都必須合法。按<i>重設回合</i>可還原本回合的所有操作。</li>
-      <li><b>取回：</b>本回合放上桌的牌會顯示紅色 × — 點擊即可取回手牌。</li>
-      <li><b>勝負：</b>最先出完手牌者獲勝。其他人依手牌點數總和計分（百搭牌算 30 點）。</li>
-    </ul>`,
-    wins:'獲勝！', roundScore:'本局得分', tiles:'張', pts:'點',
-    poolEmpty:'牌堆已空 — %s 手牌點數最低', newGame:'新遊戲',
-    invalidGroup:'桌面上有不合法的組合。',
-    mustPlay:'你必須至少從手牌打出一張牌。',
-    noFirstTable:'首次出牌不能使用桌面上已有的牌。',
-    needThirty:'首次出牌需 30 點以上（目前 %s 點）。',
-    alreadyDrew:'你本回合已經抽牌／出牌了。',
-    poolIsEmpty:'牌堆已經空了。',
-    drewAuto:'已抽一張牌 — 回合自動結束',
-    enterCode:'請輸入 6 位房間代碼。',
-    connecting:'連線中…', connected:'已連線！等待主持人…',
-    roomCreated:'房間已建立，快分享代碼！',
-    waitingPlayers:'等待玩家加入…（空位將由 AI 補上）',
-    hostLeft:'主持人已離線。', connLost:'連線中斷。',
-    you:'你', host:'主持人', guest:'訪客',
-    onlineUnavailable:'線上遊戲需要網路連線。',
-    enterName:'請輸入你的名稱。',
-    shareEmail:'電郵', shareSms:'簡訊', shareWhatsApp:'WhatsApp',
-    shareTelegram:'Telegram', shareWeChat:'微信', shareNative:'分享…',
-    wechatCopy:'代碼已複製 — 貼到微信即可！',
-    passDevice:'請將裝置交給'
-  },
-  zhCN:{
-    menu:'菜单', yourName:'你的名字', language:'语言',
-    singlePlayer:'单人游戏', passAndPlay:'轮流游玩', onlineRoom:'在线房间',
-    createRoom:'创建房间', joinRoom:'加入房间', join:'加入', roomCode:'房间代码',
-    copy:'复制', copied:'已复制！', startGame:'开始游戏', howToPlay:'游戏规则',
-    play:'开始', close:'关闭', ready:'准备好了',
-    sort:'排序', sortColor:'颜色', sortNumber:'数字', sortGroup:'组合',
-    draw:'抽一张牌', newGroup:'新组合', reset:'重置回合', endTurn:'结束回合',
-    yourHand:'你的手牌', firstMove:'你的手牌  •  首次出牌需 30 点以上',
-    thinking:'思考中…', turnEnding:'回合结束中…', gameOver:'游戏结束',
-    pool:'牌堆', theTableEmpty:'桌面是空的 — 首次出牌需 30 点以上',
-    hintsOn:'提示：开', hintsOff:'提示：关',
-    turns:'回合数', time:'时间', timeShort:'时间', totalTime:'总时间',
-    rulesTitle:'Rummikub 游戏规则',
-    rulesBody:`<ul>
-      <li><b>目标：</b>最快将手上所有牌放到桌面上。</li>
-      <li><b>牌组：</b>共 106 张牌 — 四种颜色各 1–13 两套，加上 2 张百搭牌。每人起始 14 张。</li>
-      <li><b>合法组合：</b><i>同数组</i>（3–4 张同数字、不同颜色）或<i>顺组</i>（3 张以上同颜色连续数字）。</li>
-      <li><b>百搭牌</b>可代替任何牌。之后可以用真牌把百搭牌换出来。</li>
-      <li><b>首次出牌：</b>必须从手牌出牌，总点数至少 <b>30 点</b>（百搭牌算 30 点）。首次出牌不能使用桌面上已有的牌。</li>
-      <li><b>你的回合：</b>从手牌出牌、或重新排列桌面，然后按<i>结束回合</i>。或按<i>抽一张牌</i> — 抽牌后回合会自动结束。</li>
-      <li><b>重新排列：</b>可以移动及重复使用桌面上的牌，但回合结束时所有组合都必须合法。按<i>重置回合</i>可还原本回合的所有操作。</li>
-      <li><b>取回：</b>本回合放上桌的牌会显示红色 × — 点击即可取回手牌。</li>
-      <li><b>胜负：</b>最先出完手牌者获胜。其他人依手牌点数总和计分（百搭牌算 30 点）。</li>
-    </ul>`,
-    wins:'获胜！', roundScore:'本局得分', tiles:'张', pts:'点',
-    poolEmpty:'牌堆已空 — %s 手牌点数最低', newGame:'新游戏',
-    invalidGroup:'桌面上有不合法的组合。',
-    mustPlay:'你必须至少从手牌打出一张牌。',
-    noFirstTable:'首次出牌不能使用桌面上已有的牌。',
-    needThirty:'首次出牌需 30 点以上（目前 %s 点）。',
-    alreadyDrew:'你本回合已经抽牌／出牌了。',
-    poolIsEmpty:'牌堆已经空了。',
-    drewAuto:'已抽一张牌 — 回合自动结束',
-    enterCode:'请输入 6 位房间代码。',
-    connecting:'连接中…', connected:'已连接！等待主持人…',
-    roomCreated:'房间已创建，快分享代码！',
-    waitingPlayers:'等待玩家加入…（空位将由 AI 补上）',
-    hostLeft:'主持人已离线。', connLost:'连接中断。',
-    you:'你', host:'主持人', guest:'访客',
-    onlineUnavailable:'在线游戏需要网络连接。',
-    enterName:'请输入你的名字。',
-    shareEmail:'邮件', shareSms:'短信', shareWhatsApp:'WhatsApp',
-    shareTelegram:'Telegram', shareWeChat:'微信', shareNative:'分享…',
-    wechatCopy:'代码已复制 — 粘贴到微信即可！',
-    passDevice:'请将设备交给'
-  }
-};
-let LANG = 'en';
-const t = k => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
-function applyLang(){
-  document.querySelectorAll('[data-i18n]').forEach(el=>{
-    const k = el.dataset.i18n;
-    if (I18N[LANG][k]) el.textContent = I18N[LANG][k];
-  });
-  document.getElementById('rulesBody').innerHTML = t('rulesBody');
-  document.getElementById('btnHints').classList.toggle('hintOn', HINTS);
-  document.getElementById('btnHints').title = HINTS ? t('hintsOn') : t('hintsOff');
-  document.documentElement.lang = LANG === 'en' ? 'en' : (LANG === 'zhTW' ? 'zh-Hant' : 'zh-Hans');
-  if (G) render();
-}
+const OWNER = 'lsisan1212', REPO = 'Games';
 
-/* =========================================================
-   2.  TILES & GROUP LOGIC
-   ========================================================= */
-const COLORS = ['red','blue','yellow','black'];
-const COLOR_INDEX = {red:0,blue:1,yellow:2,black:3,joker:4};
-const PALETTE = ['#4fc3f7','#ff8a65','#aed581','#ba68c8'];
-let _uid = 1;
-const clone = o => JSON.parse(JSON.stringify(o));
-const makeTile = (color,num) => ({ id:_uid++, color, num });
-
-function createTiles(){
-  const pool = [];
-  for (let s=0;s<2;s++)
-    for (const c of COLORS)
-      for (let n=1;n<=13;n++) pool.push(makeTile(c,n));
-  pool.push(makeTile('joker',0));
-  pool.push(makeTile('joker',0));
-  return pool;
-}
-function shuffle(a){
-  for (let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; }
-  return a;
-}
-
-function resolveGroup(tiles){
-  if (!tiles || tiles.length < 3) return null;
-  const jokers = tiles.filter(x=>x.color==='joker');
-  const norm   = tiles.filter(x=>x.color!=='joker');
-  if (!norm.length) return null;
-  const n = tiles.length;
-
-  const numSet   = new Set(norm.map(x=>x.num));
-  const colorSet = new Set(norm.map(x=>x.color));
-  if (numSet.size === 1 && colorSet.size === norm.length && n <= 4){
-    const num = norm[0].num, byColor = {};
-    norm.forEach(x=>byColor[x.color]=x);
-    const jk = jokers.slice(), ordered=[], values=[];
-    for (const c of COLORS){
-      if (byColor[c]){ ordered.push(byColor[c]); values.push(num); }
-      else if (jk.length){ ordered.push(jk.pop()); values.push(num); }
-    }
-    return { type:'set', ordered, values };
-  }
-  if (colorSet.size === 1){
-    const ns = norm.map(x=>x.num);
-    if (new Set(ns).size === ns.length){
-      const mn=Math.min(...ns), mx=Math.max(...ns);
-      const lo=Math.max(mx-n+1,1), hi=Math.min(mn,13-n+1);
-      if (lo<=hi){
-        const s=hi, byNum={};
-        norm.forEach(x=>byNum[x.num]=x);
-        const jk=jokers.slice(), ordered=[], values=[];
-        for (let v=s; v<s+n; v++){
-          if (byNum[v]){ ordered.push(byNum[v]); values.push(v); }
-          else { ordered.push(jk.pop()); values.push(v); }
-        }
-        return { type:'run', ordered, values };
-      }
-    }
-  }
-  return null;
-}
-const groupValue = tiles => { const r=resolveGroup(tiles); return r ? r.values.reduce((a,b)=>a+b,0) : 0; };
-
-function partialCompatible(a,b){
-  if (!a || !b) return false;
-  if (a.color==='joker' || b.color==='joker') return true;
-  if (a.num===b.num && a.color!==b.color) return true;
-  if (a.color===b.color && a.num!==b.num && Math.abs(a.num-b.num)<=2) return true;
-  return false;
-}
-
-/* =========================================================
-   3.  STATE
-   ========================================================= */
-let G = null;
-let SEL = new Set();
-let sortMode = 'color';
-let HINTS = true;
-let MODE = 'single';
-let MY_INDEX = 0;
-let AWAIT_READY = false;
-let timerHandle = null;
-
-/* networking */
-let peer = null, conn = null, conns = [], roomCode = '', hostConn = null;
-const PEER_PREFIX = 'rmkb-';
-
-const curP    = () => G.players[G.cur];
-const humanP  = () => G.players[viewIndex()];
-function viewIndex(){
-  if (MODE === 'local') return G.cur;
-  if (MODE === 'online-client') return MY_INDEX;
-  return 0;
-}
-function canAct(){
-  if (!G || G.gameOver || G.locked || AWAIT_READY) return false;
-  const i = viewIndex();
-  if (MODE === 'local')   return !G.players[i].isAI;
-  if (MODE === 'online-client') return G.cur === MY_INDEX;
-  if (MODE === 'online-host')   return G.cur === 0;
-  return G.cur === 0;
-}
-
-/* =========================================================
-   4.  TIMER HELPERS
-   ========================================================= */
-function fmtTime(ms){
-  const total = Math.max(0, Math.floor(ms/1000));
-  const m = Math.floor(total/60);
-  const s = total % 60;
-  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-}
-function elapsedMs(){
-  if (!G || !G.startTime) return 0;
-  const end = G.endTime || Date.now();
-  return end - G.startTime;
-}
-function updateTimer(){
-  const el = document.getElementById('timerInfo');
-  if (!el) return;
-  if (!G || !G.startTime){ el.textContent = '⏱ 00:00'; return; }
-  el.textContent = '⏱ ' + fmtTime(elapsedMs());
-}
-function startTimer(){
-  if (timerHandle) clearInterval(timerHandle);
-  timerHandle = setInterval(updateTimer, 1000);
-  updateTimer();
-}
-function stopTimer(){
-  if (timerHandle){ clearInterval(timerHandle); timerHandle = null; }
-  updateTimer();
-}
-
-/* =========================================================
-   5.  GAME SETUP
-   ========================================================= */
-function startGame(defs){
-  _uid = 1;
-  const pool = shuffle(createTiles());
-  G = {
-    pool, table: [],
-    players: defs.map((d,i)=>({
-      name: d.name, isAI: !!d.isAI, hand: [], melded: false,
-      color: PALETTE[i], turns: 0
-    })),
-    cur: 0, drawnThisTurn:false, drawnTile:null,
-    passStreak:0, gameOver:false, locked:false, snapshot:null,
-    startTime: Date.now(), endTime: null
-  };
-  for (let i=0;i<14;i++) for (const p of G.players) p.hand.push(G.pool.pop());
-  SEL.clear();
-  document.getElementById('endOverlay').classList.add('hidden');
-  document.getElementById('setup').classList.add('hidden');
-  startTimer();
-  startTurn();
-}
-
-/* =========================================================
-   6.  TURN FLOW
-   ========================================================= */
-function startTurn(){
-  SEL.clear();
-  G.drawnThisTurn = false;
-  G.drawnTile = null;
-  G.locked = false;
-  /* count this turn against the current player */
-  if (curP()) curP().turns = (curP().turns || 0) + 1;
-  G.snapshot = { table: clone(G.table), hand: clone(curP().hand) };
-
-  if (MODE === 'local' && !curP().isAI) AWAIT_READY = true;
-  else AWAIT_READY = false;
-
-  render();
-  broadcast();
-  if (MODE === 'local' && AWAIT_READY) showReady();
-  else maybeAI();
-}
-
-function maybeAI(){
-  if (!G || G.gameOver) return;
-  if (MODE === 'online-client') return;
-  if (curP().isAI) setTimeout(aiTurn, 850);
-}
-
-function nextTurn(){
-  G.cur = (G.cur + 1) % G.players.length;
-  startTurn();
-}
-
-function snapshotTableIds(){
-  const s = new Set();
-  if (G.snapshot) for (const g of G.snapshot.table) for (const x of g.tiles) s.add(x.id);
-  return s;
-}
-function snapshotGroupKeys(){
-  const s = new Set();
-  if (G.snapshot) for (const g of G.snapshot.table)
-    s.add(g.tiles.map(x=>x.id).sort((a,b)=>a-b).join(','));
-  return s;
-}
-function tilesPlayedThisTurn(){
-  const before = snapshotTableIds(), out = [];
-  for (const g of G.table) for (const x of g.tiles) if (!before.has(x.id)) out.push(x.id);
-  return out;
-}
-
-/* =========================================================
-   7.  ACTIONS
-   ========================================================= */
-function requestAction(a){
-  if (MODE === 'online-client'){
-    if (conn && conn.open) conn.send({ t:'action', action:a });
-    return;
-  }
-  applyAction(a);
-}
-function applyAction(a){
-  if (!G || G.gameOver) return;
-  switch(a.type){
-    case 'move':     doMove(a.ids, a.target); break;
-    case 'takeBack': doTakeBack(a.id);        break;
-    case 'newGroup': doMove(a.ids, null);     break;
-    case 'draw':     doDraw();                break;
-    case 'endTurn':  doEndTurn();             break;
-    case 'reset':    doReset();               break;
-  }
-  broadcast();
-}
-function doMove(ids, targetId){
-  const p = curP(), moving = [];
-  for (const g of G.table){
-    const keep = [];
-    for (const x of g.tiles){ if (ids.includes(x.id)) moving.push(x); else keep.push(x); }
-    g.tiles = keep;
-  }
-  G.table = G.table.filter(g=>g.tiles.length>0);
-  p.hand = p.hand.filter(x=>{
-    if (ids.includes(x.id)){ moving.push(x); return false; }
-    return true;
-  });
-  if (!moving.length) return;
-  let target = null;
-  if (targetId !== null && targetId !== undefined) target = G.table.find(g=>g.id===targetId);
-  if (!target){ target = { id:_uid++, tiles:[] }; G.table.push(target); }
-  target.tiles.push(...moving);
-  const r = resolveGroup(target.tiles);
-  if (r) target.tiles = r.ordered;
-  SEL.clear();
-  render();
-}
-function doTakeBack(id){
-  if (snapshotTableIds().has(id)) return;
-  let found = null;
-  for (const g of G.table){
-    const i = g.tiles.findIndex(x=>x.id===id);
-    if (i>=0){ found = g.tiles.splice(i,1)[0]; break; }
-  }
-  if (!found) return;
-  G.table = G.table.filter(g=>g.tiles.length>0);
-  curP().hand.push(found);
-  SEL.delete(id);
-  render();
-}
-function doDraw(){
-  if (!canActHost()) return;
-  if (G.drawnThisTurn || tilesPlayedThisTurn().length){ toast(t('alreadyDrew')); return; }
-  if (!G.pool.length){ toast(t('poolIsEmpty')); return; }
-  const tile = G.pool.pop();
-  curP().hand.push(tile);
-  G.drawnThisTurn = true;
-  G.drawnTile = tile;
-  G.locked = true;
-  render();
-  toast(t('drewAuto'), true);
-  setTimeout(()=>{
-    if (!G || G.gameOver) return;
-    G.locked = false;
-    passTurn();
-  }, 750);
-}
-function canActHost(){
-  if (!G || G.gameOver || G.locked) return false;
-  if (MODE === 'online-client') return false;
-  const i = viewIndex();
-  if (MODE === 'local') return !G.players[i].isAI && !AWAIT_READY;
-  return G.cur === 0;
-}
-function doReset(){
-  if (!canActHost()) return;
-  const p = curP();
-  G.table = clone(G.snapshot.table);
-  p.hand  = clone(G.snapshot.hand);
-  if (G.drawnTile) G.pool.push(G.drawnTile);
-  G.drawnThisTurn = false;
-  G.drawnTile = null;
-  SEL.clear();
-  render();
-}
-function validateTurn(){
-  const p = curP(), errs = [];
-  for (const g of G.table)
-    if (!resolveGroup(g.tiles)) errs.push(t('invalidGroup'));
-  if (tilesPlayedThisTurn().length === 0) errs.push(t('mustPlay'));
-  if (!p.melded){
-    const beforeIds  = snapshotTableIds();
-    const beforeKeys = snapshotGroupKeys();
-    let sum = 0, touched = false;
-    for (const g of G.table){
-      const key = g.tiles.map(x=>x.id).sort((a,b)=>a-b).join(',');
-      if (beforeKeys.has(key)) continue;
-      if (g.tiles.some(x=>beforeIds.has(x.id))) touched = true;
-      sum += groupValue(g.tiles);
-    }
-    if (touched) errs.push(t('noFirstTable'));
-    if (sum < 30) errs.push(t('needThirty').replace('%s', sum));
-  }
-  return [...new Set(errs)];
-}
-function doEndTurn(){
-  if (!canActHost()) return;
-  const p = curP();
-  if (tilesPlayedThisTurn().length === 0){
-    G.table = clone(G.snapshot.table);
-    SEL.clear();
-    if (!G.drawnThisTurn && G.pool.length) p.hand.push(G.pool.pop());
-    G.drawnThisTurn = false;
-    G.drawnTile = null;
-    render();
-    passTurn();
-    return;
-  }
-  const errs = validateTurn();
-  if (errs.length){ toast(errs[0]); return; }
-  if (!p.melded) p.melded = true;
-  G.table.forEach(g=>{ const r = resolveGroup(g.tiles); if (r) g.tiles = r.ordered; });
-  G.table = G.table.filter(g=>g.tiles.length>0);
-  SEL.clear();
-  G.passStreak = 0;
-  if (p.hand.length === 0){ render(); broadcast(); endGame(G.cur); return; }
-  nextTurn();
-}
-function passTurn(){
-  if (G.pool.length === 0) G.passStreak++; else G.passStreak = 0;
-  if (G.passStreak >= G.players.length){ render(); broadcast(); endGame(-1); return; }
-  nextTurn();
-}
-
-/* =========================================================
-   8.  SORTING
-   ========================================================= */
-function colorSort(a,b){
-  const ca=COLOR_INDEX[a.color], cb=COLOR_INDEX[b.color];
-  if (ca!==cb) return ca-cb;
-  return a.num-b.num;
-}
-function numberSort(a,b){
-  const na = a.color==='joker'?99:a.num, nb = b.color==='joker'?99:b.num;
-  if (na!==nb) return na-nb;
-  return COLOR_INDEX[a.color]-COLOR_INDEX[b.color];
-}
-function groupChunks(hand){
-  const jokers  = hand.filter(x=>x.color==='joker');
-  const normals = hand.filter(x=>x.color!=='joker');
-  const used = new Set(), groups = [], jkPool = jokers.slice();
-  const byNum = new Map();
-  for (const x of normals){ if (!byNum.has(x.num)) byNum.set(x.num,[]); byNum.get(x.num).push(x); }
-  for (const num of [...byNum.keys()].sort((a,b)=>a-b)){
-    const list = byNum.get(num).filter(x=>!used.has(x.id));
-    const seen = new Set(), uniq = [];
-    for (const x of list){ if (seen.has(x.color)) continue; seen.add(x.color); uniq.push(x); }
-    if (uniq.length>=3){
-      const g = uniq.slice(0,4);
-      g.forEach(x=>used.add(x.id));
-      groups.push({ tiles:g, num });
-    }
-  }
-  for (const c of COLORS){
-    const list = normals.filter(x=>x.color===c && !used.has(x.id)).sort((a,b)=>a.num-b.num);
-    const seen = new Set(), uniq = [];
-    for (const x of list){ if (seen.has(x.num)) continue; seen.add(x.num); uniq.push(x); }
-    let i=0;
-    while (i<uniq.length){
-      let j=i;
-      while (j+1<uniq.length && uniq[j+1].num===uniq[j].num+1) j++;
-      if (j-i+1>=3){
-        const g = uniq.slice(i,j+1);
-        g.forEach(x=>used.add(x.id));
-        groups.push({ tiles:g, num:g[0].num });
-        i=j+1;
-      } else i++;
-    }
-  }
-  for (const num of [...byNum.keys()].sort((a,b)=>a-b)){
-    const list = byNum.get(num).filter(x=>!used.has(x.id));
-    if (list.length===2 && jkPool.length){
-      const jk = jkPool.shift(), g = [...list, jk];
-      g.forEach(x=>used.add(x.id));
-      groups.push({ tiles:g, num });
-    }
-  }
-  for (const c of COLORS){
-    const list = normals.filter(x=>x.color===c && !used.has(x.id)).sort((a,b)=>a.num-b.num);
-    for (let i=0;i+1<list.length;i++){
-      const a=list[i], b=list[i+1];
-      if (used.has(a.id)||used.has(b.id)) continue;
-      if (b.num===a.num+1 && jkPool.length){
-        const jk = jkPool.shift(), g = [a,b,jk];
-        g.forEach(x=>used.add(x.id));
-        groups.push({ tiles:g, num:a.num });
-      }
-    }
-  }
-  const rest = hand.filter(x=>!used.has(x.id)).sort(colorSort);
-  groups.sort((a,b)=> b.tiles.length-a.tiles.length || a.num-b.num);
-  const chunks = groups.map(g=>g.tiles);
-  if (rest.length) chunks.push(rest);
-  return chunks.length ? chunks : [[]];
-}
-function sortHand(hand, mode){
-  if (mode === 'group') return groupChunks(hand);
-  return [hand.slice().sort(mode === 'number' ? numberSort : colorSort)];
-}
-
-/* =========================================================
-   9.  HINTS
-   ========================================================= */
-function computeHints(){
-  const res = { hand:new Set(), groups:new Set() };
-  if (!HINTS || !G || SEL.size !== 1) return res;
-  const selId = [...SEL][0];
-  let sel = null;
-  for (const x of humanP().hand) if (x.id===selId) sel = x;
-  for (const g of G.table) for (const x of g.tiles) if (x.id===selId) sel = x;
-  if (!sel) return res;
-  for (const x of humanP().hand){
-    if (x.id===selId) continue;
-    if (partialCompatible(sel, x)) res.hand.add(x.id);
-  }
-  for (const g of G.table){
-    if (g.tiles.some(x=>x.id===selId)) continue;
-    if (resolveGroup(g.tiles.concat([sel]))) res.groups.add(g.id);
-  }
-  return res;
-}
-
-/* =========================================================
-   10. RENDER
-   ========================================================= */
-function tileEl(x, opts){
-  opts = opts || {};
-  const wrap = document.createElement('div');
-  wrap.className = 'tile-wrap';
-  const el = document.createElement('div');
-  el.className = 'tile ' + x.color;
-  el.textContent = x.color==='joker' ? '★' : x.num;
-  if (SEL.has(x.id)) el.classList.add('selected');
-  if (opts.dim) el.classList.add('dim');
-  if (opts.hint) el.classList.add('hint');
-  el.addEventListener('click', e=>{
-    e.stopPropagation();
-    if (!canAct()) return;
-    if (SEL.has(x.id)) SEL.delete(x.id); else SEL.add(x.id);
-    render();
-  });
-  wrap.appendChild(el);
-  if (opts.cross){
-    const cx = document.createElement('div');
-    cx.className = 'tile-cross';
-    cx.textContent = '×';
-    cx.title = 'Take back';
-    cx.addEventListener('click', e=>{
-      e.stopPropagation();
-      requestAction({ type:'takeBack', id:x.id });
-    });
-    wrap.appendChild(cx);
-  }
-  return wrap;
-}
-
-function render(){
-  if (!G) return;
-
-  /* --- top bar players (with turn count) --- */
-  document.getElementById('players').innerHTML = G.players.map((p,i)=>{
-    const cls = (i===G.cur && !G.gameOver) ? 'p current' : 'p';
-    const you = (i===viewIndex() && MODE!=='local') ? ' ★' : '';
-    const turns = p.turns || 0;
-    return `<div class="${cls}" title="${esc(p.name)} — ${t('turns')}: ${turns}">
-      <span class="dot" style="background:${p.color}"></span>${esc(p.name)}${you}
-      <span class="cnt">${p.hand.length}</span>
-      <span class="cnt turns" title="${t('turns')}">⟳${turns}</span>
-      ${p.melded ? '<span class="meld">✓</span>' : ''}
-    </div>`;
-  }).join('');
-  document.getElementById('poolInfo').textContent = t('pool') + ': ' + G.pool.length;
-
-  /* --- hints --- */
-  const hints = computeHints();
-
-  /* --- table --- */
-  const beforeIds = snapshotTableIds();
-  const ta = document.getElementById('tableArea');
-  ta.innerHTML = '';
-  if (!G.table.length){
-    const d = document.createElement('div');
-    d.className = 'empty';
-    d.textContent = t('theTableEmpty');
-    ta.appendChild(d);
-  }
-  for (const g of G.table){
-    const el = document.createElement('div');
-    el.className = 'group ' + (resolveGroup(g.tiles) ? 'ok' : 'bad');
-    if (hints.groups.has(g.id)) el.classList.add('hint');
-    for (const x of g.tiles)
-      el.appendChild(tileEl(x, { cross: canAct() && !beforeIds.has(x.id) }));
-    el.addEventListener('click', e=>{
-      if (e.target.closest('.tile-wrap')) return;
-      if (!canAct() || !SEL.size) return;
-      requestAction({ type:'move', ids:[...SEL], target:g.id });
-    });
-    ta.appendChild(el);
-  }
-
-  /* --- hand --- */
-  const ha = document.getElementById('handArea');
-  ha.innerHTML = '';
-  const me = humanP();
-  const dim = !canAct();
-  const chunks = sortHand(me.hand, sortMode);
-  chunks.forEach((chunk, ci)=>{
-    if (ci>0){ const s=document.createElement('div'); s.className='sep'; ha.appendChild(s); }
-    for (const x of chunk) ha.appendChild(tileEl(x, { dim, hint: hints.hand.has(x.id) }));
-  });
-
-  /* --- label --- */
-  const p = curP();
-  let label;
-  if (G.gameOver) label = t('gameOver');
-  else if (G.locked) label = t('turnEnding');
-  else if (MODE === 'local') label = esc(p.name) + ' — ' + t('yourHand');
-  else if (p.isAI) label = esc(p.name) + ' ' + t('thinking') + '  (' + t('yourHand') + ')';
-  else if (!p.melded) label = t('firstMove');
-  else label = t('yourHand');
-  document.getElementById('handLabel').textContent = label;
-
-  /* --- buttons --- */
-  const played = tilesPlayedThisTurn().length > 0;
-  document.getElementById('btnDraw').disabled     = !canAct() || G.drawnThisTurn || played;
-  document.getElementById('btnNewGroup').disabled = !canAct() || SEL.size === 0;
-  document.getElementById('btnReset').disabled    = !canAct();
-  document.getElementById('btnEnd').disabled      = !canAct();
-}
-function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-/* =========================================================
-   11. AI
-   ========================================================= */
-function genCandidates(hand){
-  const out = [], n = hand.length, maxK = n<=15 ? 7 : 5, cur = [];
-  function comb(start,k){
-    if (cur.length===k){
-      const tiles = cur.map(i=>hand[i]);
-      const r = resolveGroup(tiles);
-      if (r) out.push({ tiles, value:r.values.reduce((a,b)=>a+b,0) });
-      return;
-    }
-    for (let i=start;i<n;i++){ cur.push(i); comb(i+1,k); cur.pop(); }
-  }
-  for (let k=3;k<=maxK && k<=n;k++) comb(0,k);
-  return out;
-}
-function searchMeld(cands, minValue){
-  const map = new Map();
-  for (const c of cands){
-    const key = c.tiles.map(x=>x.id).sort((a,b)=>a-b).join('-');
-    if (!map.has(key)) map.set(key,c);
-  }
-  let list = [...map.values()];
-  list.sort((a,b)=> b.tiles.length-a.tiles.length || b.value-a.value);
-  if (list.length>140) list = list.slice(0,140);
-  const score = (combo,value)=>{
-    let tiles=0, jok=0;
-    for (const c of combo){
-      tiles += c.tiles.length;
-      jok += c.tiles.filter(x=>x.color==='joker').length;
-    }
-    return tiles*1000 + value - jok*150;
-  };
-  let bestAny={score:-Infinity,combo:null}, bestMin={score:-Infinity,combo:null};
-  const used = new Set(); let nodes=0; const LIMIT=40000;
-  function dfs(i,combo,value){
-    if (nodes++ > LIMIT) return;
-    const s = score(combo,value);
-    if (s>bestAny.score) bestAny = {score:s, combo:combo.slice()};
-    if (value>=minValue && s>bestMin.score) bestMin = {score:s, combo:combo.slice()};
-    if (i>=list.length) return;
-    for (let j=i;j<list.length;j++){
-      const c = list[j];
-      let ok = true;
-      for (const x of c.tiles) if (used.has(x.id)){ ok=false; break; }
-      if (!ok) continue;
-      for (const x of c.tiles) used.add(x.id);
-      combo.push(c);
-      dfs(j+1, combo, value+c.value);
-      combo.pop();
-      for (const x of c.tiles) used.delete(x.id);
-      if (nodes>LIMIT) return;
-    }
-  }
-  dfs(0,[],0);
-  const res = minValue>0 ? bestMin.combo : bestAny.combo;
-  return (res && res.length) ? res : null;
-}
-function aiTurn(){
-  if (!G || G.gameOver) return;
-  if (MODE === 'online-client') return;
-  const p = curP();
-  if (!p.isAI) return;
-  let played = false;
-
-  if (!p.melded){
-    const combo = searchMeld(genCandidates(p.hand), 30);
-    if (combo){
-      for (const c of combo){
-        c.tiles.forEach(x=>{
-          const i = p.hand.findIndex(y=>y.id===x.id);
-          if (i>=0) p.hand.splice(i,1);
-        });
-        G.table.push({ id:_uid++, tiles:c.tiles.slice() });
-      }
-      p.melded = true; played = true;
-    }
-  } else {
-    let changed = true;
-    while (changed){
-      changed = false;
-      outer:
-      for (const g of G.table){
-        for (let i=0;i<p.hand.length;i++){
-          const x = p.hand[i];
-          if (x.color==='joker') continue;
-          const r = resolveGroup(g.tiles.concat([x]));
-          if (r){ g.tiles = r.ordered; p.hand.splice(i,1); played=true; changed=true; break outer; }
-        }
-      }
-    }
-    if (p.hand.length >= 3){
-      const combo = searchMeld(genCandidates(p.hand), 0);
-      if (combo){
-        for (const c of combo){
-          c.tiles.forEach(x=>{
-            const i = p.hand.findIndex(y=>y.id===x.id);
-            if (i>=0) p.hand.splice(i,1);
-          });
-          G.table.push({ id:_uid++, tiles:c.tiles.slice() });
-        }
-        played = true;
-      }
-    }
-  }
-
-  if (played){
-    G.passStreak = 0;
-    G.table.forEach(g=>{ const r=resolveGroup(g.tiles); if (r) g.tiles=r.ordered; });
-    if (p.hand.length === 0){ render(); broadcast(); endGame(G.cur); return; }
-    render(); broadcast();
-    setTimeout(nextTurn, 700);
-  } else {
-    if (G.pool.length) p.hand.push(G.pool.pop());
-    G.passStreak = G.pool.length===0 ? G.passStreak+1 : 0;
-    render(); broadcast();
-    if (G.passStreak >= G.players.length){ endGame(-1); return; }
-    setTimeout(nextTurn, 500);
-  }
-}
-
-/* =========================================================
-   12. END GAME
-   ========================================================= */
-function handValue(hand){
-  let v=0;
-  for (const x of hand) v += (x.color==='joker' ? 30 : x.num);
-  return v;
-}
-function endGame(winner){
-  G.gameOver = true;
-  G.endTime = Date.now();
-  SEL.clear();
-  stopTimer();
-  render(); broadcast();
-
-  const totalMs = elapsedMs();
-  const totalTimeStr = fmtTime(totalMs);
-
-  let title, body='';
-  if (winner >= 0){
-    const w = G.players[winner];
-    let total = 0;
-    for (let i=0;i<G.players.length;i++) if (i!==winner) total += handValue(G.players[i].hand);
-    title = esc(w.name) + ' ' + t('wins');
-    body = `<p style="text-align:center">${t('roundScore')}: <b>${total}</b> ${t('pts')}</p>`;
-  } else {
-    let best = 0;
-    for (let i=1;i<G.players.length;i++)
-      if (handValue(G.players[i].hand) < handValue(G.players[best].hand)) best = i;
-    title = t('poolEmpty').replace('%s', esc(G.players[best].name));
-  }
-
-  const rows = G.players.map((p,i)=>
-    `<tr>
-       <td><span class="dot" style="background:${p.color};display:inline-block;margin-right:8px"></span>${esc(p.name)}</td>
-       <td class="num">${p.turns||0} ${t('turns')}</td>
-       <td class="num">${p.hand.length} ${t('tiles')}</td>
-       <td class="num">${handValue(p.hand)} ${t('pts')}</td>
-     </tr>`).join('');
-
-  document.getElementById('endContent').innerHTML =
-    `<h2>${title}</h2>${body}
-     <p style="text-align:center;opacity:.7;margin:6px 0 0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase">${t('totalTime')}</p>
-     <div class="timeBig">${totalTimeStr}</div>
-     <table>${rows}</table>
-     <button class="primary" id="btnEndNew">${t('newGame')}</button>`;
-  document.getElementById('endOverlay').classList.remove('hidden');
-  document.getElementById('btnEndNew').onclick = ()=> location.reload();
-}
-
-/* =========================================================
-   13. READY GATE (pass & play)
-   ========================================================= */
-function showReady(){
-  document.getElementById('readyName').textContent = curP().name;
-  document.getElementById('readyText').textContent = t('passDevice') + ' ' + curP().name;
-  document.getElementById('readyOverlay').classList.remove('hidden');
-}
-document.getElementById('btnReady').onclick = ()=>{
-  AWAIT_READY = false;
-  document.getElementById('readyOverlay').classList.add('hidden');
-  render();
+const FALLBACK = {
+  site: { title: 'Games', subtitle: '單檔網頁遊戲合集 · 零依賴 · 離線可用' },
+  games: [
+    { file: 'Rummuku.html', title: 'Rummikub', titleZh: '拉密',
+      desc: '經典數字牌遊戲：2–4 人對戰、計時、出牌提示、牌池顯示。',
+      emoji: '🀄', accent: '#ffd54f', tags: ['桌遊', '益智', '2-4 人'] }
+  ]
 };
 
-/* =========================================================
-   14. NETWORKING
-   ========================================================= */
-function loadPeerJS(cb){
-  if (window.Peer) return cb(true);
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-  s.onload  = ()=> cb(true);
-  s.onerror = ()=> cb(false);
-  document.head.appendChild(s);
-}
-function genCode(){
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s = '';
-  for (let i=0;i<6;i++) s += A[(Math.random()*A.length)|0];
-  return s;
-}
-function broadcast(){
-  if (MODE !== 'online-host') return;
-  for (const c of conns){
-    if (c.conn && c.conn.open){
-      try { c.conn.send({ t:'state', state:G, you:c.index }); } catch(e){}
-    }
-  }
-}
-function hostStart(){
-  loadPeerJS(ok=>{
-    if (!ok){ setStatus(t('onlineUnavailable'), 'err'); return; }
-    roomCode = genCode();
-    setStatus(t('connecting'));
-    peer = new Peer(PEER_PREFIX + roomCode, { debug:1 });
-    peer.on('open', ()=>{
-      document.getElementById('codeDisplay').textContent = roomCode;
-      document.getElementById('roomBox').classList.remove('hidden');
-      document.getElementById('lobbyChoice').classList.add('hidden');
-      document.getElementById('joinBox').classList.add('hidden');
-      setStatus(t('roomCreated'), 'ok');
-      renderLobby();
-      buildShare();
-    });
-    peer.on('error', e=> setStatus('Error: ' + e.type, 'err'));
-    peer.on('connection', c=>{
-      c.on('open', ()=>{
-        if (conns.length >= 3){ c.send({t:'full'}); setTimeout(()=>c.close(), 300); return; }
-        const idx = conns.length + 1;
-        conns.push({ conn:c, index:idx, name:t('guest')+' '+idx });
-        c.on('data', d=>{
-          if (d.t === 'hello'){ conns.find(x=>x.conn===c).name = d.name; renderLobby(); }
-          if (d.t === 'action') applyAction(d.action);
-        });
-        c.on('close', ()=>{ conns = conns.filter(x=>x.conn!==c); renderLobby(); });
-        renderLobby();
-      });
-    });
-  });
-}
-function guestJoin(code){
-  loadPeerJS(ok=>{
-    if (!ok){ setStatus(t('onlineUnavailable'), 'err'); return; }
-    setStatus(t('connecting'));
-    peer = new Peer({ debug:1 });
-    peer.on('open', ()=>{
-      conn = peer.connect(PEER_PREFIX + code, { reliable:true });
-      conn.on('open', ()=>{
-        conn.send({ t:'hello', name: myName() });
-        setStatus(t('connected'), 'ok');
-      });
-      conn.on('data', d=>{
-        if (d.t === 'state'){
-          G = d.state;
-          MY_INDEX = d.you;
-          MODE = 'online-client';
-          document.getElementById('setup').classList.add('hidden');
-          document.getElementById('endOverlay').classList.add('hidden');
-          /* keep timer running on client side based on host's startTime */
-          if (G.startTime){ startTimer(); }
-          render();
-        }
-        if (d.t === 'full') setStatus('Room is full.', 'err');
-      });
-      conn.on('close', ()=>{ setStatus(t('hostLeft'), 'err'); toast(t('hostLeft')); });
-      conn.on('error', ()=> setStatus(t('connLost'), 'err'));
-    });
-    peer.on('error', e=> setStatus('Error: ' + e.type, 'err'));
-  });
-}
-function renderLobby(){
-  const box = document.getElementById('lobbyPlayers');
-  if (!box) return;
-  const list = [{ name: myName(), host:true }]
-    .concat(conns.map(c=>({ name:c.name, host:false })));
-  while (list.length < 4) list.push({ name:'AI', ai:true });
-  box.innerHTML = list.map((p,i)=>
-    `<div class="lobbyPlayer">
-       <span class="dot" style="background:${PALETTE[i]}"></span>
-       ${esc(p.name)} ${p.host?'('+t('host')+')':''} ${p.ai?'🤖':''}
-     </div>`).join('');
-  setStatus(t('waitingPlayers'));
-}
-function myName(){
-  const v = document.getElementById('inputName').value.trim();
-  return v || t('you');
-}
-function setStatus(msg, cls){
-  const el = document.getElementById('statusMsg');
-  el.textContent = msg || '';
-  el.className = 'statusMsg' + (cls ? ' ' + cls : '');
-}
-function buildShare(){
-  const row = document.getElementById('shareRow');
-  row.innerHTML = '';
-  const url  = location.href.split('#')[0] + '#' + roomCode;
-  const text = encodeURIComponent('Rummikub! Code: ' + roomCode + '  ');
-  const u    = encodeURIComponent(url);
-  const links = [
-    { k:'shareEmail',    icon:'✉️',  href:`mailto:?subject=Rummikub&body=${text}${u}` },
-    { k:'shareSms',      icon:'💬',  href:`sms:?&body=${text}${u}` },
-    { k:'shareWhatsApp', icon:'🟢',  href:`https://wa.me/?text=${text}${u}` },
-    { k:'shareTelegram', icon:'✈️',  href:`https://t.me/share/url?url=${u}&text=${text}` },
-    { k:'shareWeChat',   icon:'🟩',  href:null }
-  ];
-  for (const L of links){
-    const a = document.createElement('a');
-    a.className = 'shareBtn';
-    a.innerHTML = L.icon + ' ' + t(L.k);
-    if (L.href){ a.href = L.href; a.target = '_blank'; a.rel='noopener'; }
-    else {
-      a.href = 'javascript:void(0)';
-      a.onclick = ()=>{
-        navigator.clipboard.writeText(roomCode).then(()=> toast(t('wechatCopy'), true));
-      };
-    }
-    row.appendChild(a);
-  }
-  if (navigator.share){
-    const b = document.createElement('button');
-    b.className = 'shareBtn';
-    b.innerHTML = '📤 ' + t('shareNative');
-    b.onclick = ()=>{
-      navigator.share({ title:'Rummikub', text:'Join my game! Code: '+roomCode, url }).catch(()=>{});
-    };
-    row.appendChild(b);
-  }
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function prettyName(file) {
+  return file.replace(/\.html?$/i, '')
+             .replace(/[-_]+/g, ' ')
+             .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+             .trim();
 }
 
-/* =========================================================
-   15. SETUP UI
-   ========================================================= */
-let chosenMode = 'single';
-document.querySelectorAll('.modeBtn').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.modeBtn').forEach(x=>x.classList.remove('sel'));
-    b.classList.add('sel');
-    chosenMode = b.dataset.mode;
-    const lobby = document.getElementById('lobby');
-    lobby.classList.toggle('hidden', chosenMode !== 'online');
-    if (chosenMode === 'online'){
-      document.getElementById('lobbyChoice').classList.remove('hidden');
-      document.getElementById('joinBox').classList.add('hidden');
-      document.getElementById('roomBox').classList.add('hidden');
-      setStatus('');
-    }
-    if (chosenMode !== 'online' && peer){ try{ peer.destroy(); }catch(e){} peer=null; conns=[]; }
+const state = { site: FALLBACK.site, games: [] };
+
+function render() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const grid = document.getElementById('grid');
+  const list = state.games.filter(g => {
+    if (!q) return true;
+    return [g.title, g.titleZh, g.desc, g.file, (g.tags || []).join(' ')]
+      .join(' ').toLowerCase().includes(q);
   });
+
+  document.getElementById('count').textContent =
+    q ? `顯示 ${list.length} / ${state.games.length} 個遊戲`
+      : `共 ${state.games.length} 個遊戲`;
+  document.getElementById('empty').hidden = list.length !== 0;
+
+  grid.innerHTML = list.map(g => `
+    <a class="card" href="${esc(g.file)}" style="--card-accent:${esc(g.accent || 'var(--accent)')}">
+      <div class="top">
+        <span class="ico" aria-hidden="true">${esc(g.emoji || '🎮')}</span>
+        <h2>${esc(g.title)}${g.titleZh ? `<span class="zh">${esc(g.titleZh)}</span>` : ''}</h2>
+      </div>
+      ${g.desc ? `<p>${esc(g.desc)}</p>` : ''}
+      ${(g.tags && g.tags.length) ? `<div class="tags">${g.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      <span class="go">開始玩 →</span>
+    </a>`).join('');
+}
+
+async function load() {
+  let manifest = null;
+  try {
+    const r = await fetch('games.json', { cache: 'no-store' });
+    if (r.ok) manifest = await r.json();
+  } catch (e) { /* file:// 或 fetch 被擋 → 用 fallback */ }
+
+  const base = (manifest && Array.isArray(manifest.games)) ? manifest : FALLBACK;
+  state.site = base.site || FALLBACK.site;
+  state.games = (base.games || []).slice();
+  document.getElementById('src').textContent = manifest ? '' : '（離線模式：用內建清單）';
+
+  document.title = state.site.title || 'Games';
+  document.getElementById('siteTitle').textContent = state.site.title || 'Games';
+  document.getElementById('siteSub').textContent = state.site.subtitle || '';
+  render();
+
+  try {
+    const r2 = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents`, { cache: 'no-store' });
+    if (r2.ok) {
+      const files = await r2.json();
+      const known = new Set(state.games.map(g => g.file));
+      let added = 0;
+      for (const f of files) {
+        if (f.type !== 'file') continue;
+        if (!/\.html?$/i.test(f.name)) continue;
+        if (/^index\.html?$/i.test(f.name) || f.name.startsWith('_')) continue;
+        if (known.has(f.name)) continue;
+        state.games.push({ file: f.name, title: prettyName(f.name), emoji: '🎮',
+                           desc: '（未加入 games.json，顯示為自動偵測）', tags: ['自動偵測'] });
+        added++;
+      }
+      if (added) render();
+    }
+  } catch (e) { /* 離線 / 被擋，忽略 */ }
+}
+
+document.getElementById('q').addEventListener('input', render);
+
+const THEME_KEY = 'games-theme';
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.set === t)));
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+}
+document.getElementById('themes').addEventListener('click', e => {
+  const b = e.target.closest('.theme');
+  if (b) setTheme(b.dataset.set);
 });
-document.getElementById('btnCreate').onclick = ()=>{
-  if (peer){ try{ peer.destroy(); }catch(e){} peer=null; conns=[]; }
-  document.getElementById('lobbyChoice').classList.add('hidden');
-  hostStart();
-};
-document.getElementById('btnJoin').onclick = ()=>{
-  document.getElementById('lobbyChoice').classList.add('hidden');
-  document.getElementById('joinBox').classList.remove('hidden');
-  document.getElementById('inputCode').focus();
-};
-document.getElementById('btnJoinGo').onclick = ()=>{
-  const code = document.getElementById('inputCode').value.trim().toUpperCase();
-  if (code.length !== 6){ setStatus(t('enterCode'), 'err'); return; }
-  guestJoin(code);
-};
-document.getElementById('btnCopy').onclick = ()=>{
-  navigator.clipboard.writeText(roomCode).then(()=> toast(t('copied'), true));
-};
-document.getElementById('btnStart').onclick = ()=>{
-  const defs = [{ name: myName(), isAI:false }];
-  for (const c of conns) defs.push({ name: c.name, isAI:false });
-  while (defs.length < 4) defs.push({ name: 'AI ' + (defs.length), isAI:true });
-  const aiNames = ['Ana','Ben','Cid','Dee'];
-  let ai = 0;
-  for (const d of defs) if (d.isAI) d.name = aiNames[ai++] || ('AI '+(ai+1));
-  MODE = 'online-host';
-  MY_INDEX = 0;
-  startGame(defs);
-};
-document.getElementById('btnPlay').onclick = ()=>{
-  const name = document.getElementById('inputName').value.trim();
-  if (!name){ setStatus(t('enterName'), 'err'); document.getElementById('inputName').focus(); return; }
-  if (chosenMode === 'single'){
-    MODE = 'single'; MY_INDEX = 0;
-    startGame([
-      { name, isAI:false },
-      { name:'Ana', isAI:true },
-      { name:'Ben', isAI:true },
-      { name:'Cid', isAI:true }
-    ]);
-  } else if (chosenMode === 'local'){
-    MODE = 'local';
-    startGame([
-      { name, isAI:false },
-      { name:'Player 2', isAI:false },
-      { name:'Player 3', isAI:false },
-      { name:'Player 4', isAI:false }
-    ]);
-  } else {
-    setStatus(chosenMode === 'online' ? t('waitingPlayers') : '', '');
-  }
-};
+try {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) setTheme(saved);
+} catch (e) {}
 
-function openRules(){
-  document.getElementById('rulesBody').innerHTML = t('rulesBody');
-  document.getElementById('rulesOverlay').classList.remove('hidden');
-}
-document.getElementById('btnRules').onclick = openRules;
-document.getElementById('btnRulesTop').onclick = openRules;
-document.getElementById('btnCloseRules').onclick = ()=>{
-  document.getElementById('rulesOverlay').classList.add('hidden');
-};
+document.getElementById('repoLink').innerHTML =
+  `<a href="https://github.com/${OWNER}/${REPO}">github.com/${OWNER}/${REPO}</a>`;
 
-document.getElementById('selLang').onchange = e=>{
-  LANG = e.target.value;
-  applyLang();
-  if (!document.getElementById('roomBox').classList.contains('hidden')) buildShare();
-};
-
-document.getElementById('inputName').addEventListener('input', ()=>{
-  if (MODE.startsWith('online') && conns.length) renderLobby();
-});
-
-document.getElementById('btnHints').onclick = ()=>{
-  HINTS = !HINTS;
-  const b = document.getElementById('btnHints');
-  b.classList.toggle('hintOn', HINTS);
-  b.title = HINTS ? t('hintsOn') : t('hintsOff');
-  toast(HINTS ? t('hintsOn') : t('hintsOff'), true);
-  render();
-};
-
-document.querySelectorAll('.sortBtn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    sortMode = btn.dataset.mode;
-    document.querySelectorAll('.sortBtn').forEach(b=> b.classList.toggle('active', b===btn));
-    render();
-  });
-});
-
-document.getElementById('btnDraw').onclick     = ()=> requestAction({ type:'draw' });
-document.getElementById('btnNewGroup').onclick = ()=> requestAction({ type:'move', ids:[...SEL], target:null });
-document.getElementById('btnReset').onclick    = ()=> requestAction({ type:'reset' });
-document.getElementById('btnEnd').onclick      = ()=> requestAction({ type:'endTurn' });
-document.getElementById('btnNew').onclick      = ()=>{
-  if (confirm(t('newGame') + '?')) location.reload();
-};
-
-document.addEventListener('keydown', e=>{
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-  if (e.key === 'Enter' && canAct()) requestAction({ type:'endTurn' });
-  if (e.key === 'd' && canAct())     requestAction({ type:'draw' });
-  if (e.key === 'Escape'){ SEL.clear(); render(); }
-});
-
-let toastTimer = null;
-function toast(msg, good){
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'show' + (good ? ' good' : '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ el.className = ''; }, 2600);
-}
-
-/* =========================================================
-   16. INIT
-   ========================================================= */
-(function init(){
-  const nav = (navigator.language || 'en').toLowerCase();
-  if (nav.startsWith('zh')){
-    LANG = (nav.includes('tw') || nav.includes('hk') || nav.includes('hant')) ? 'zhTW' : 'zhCN';
-  } else LANG = 'en';
-  document.getElementById('selLang').value = LANG;
-  document.getElementById('inputName').value = LANG === 'en' ? 'You' : t('you');
-
-  const hash = location.hash.replace('#','').trim().toUpperCase();
-  if (hash.length === 6){
-    document.querySelectorAll('.modeBtn').forEach(x=>x.classList.remove('sel'));
-    const ob = document.querySelector('.modeBtn[data-mode="online"]');
-    ob.classList.add('sel'); chosenMode = 'online';
-    document.getElementById('lobby').classList.remove('hidden');
-    document.getElementById('lobbyChoice').classList.add('hidden');
-    document.getElementById('joinBox').classList.remove('hidden');
-    document.getElementById('inputCode').value = hash;
-  }
-
-  applyLang();
-  updateTimer();
-})();
+load();
 </script>
 </body>
 </html>

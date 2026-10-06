@@ -1,0 +1,17 @@
+{
+  "site": {
+    "title": "Games",
+    "subtitle": "單檔網頁遊戲合集 · 零依賴 · 離線可用"
+  },
+  "games": [
+    {
+      "file": "Rummuku.html",
+      "title": "Rummikub",
+      "titleZh": "拉密",
+      "desc": "經典數字牌遊戲：2–4 人對戰、計時、出牌提示、牌池顯示。支援單人 AI 與同桌輪流模式。",
+      "emoji": "🀄",
+      "accent": "#ffd54f",
+      "tags": ["桌遊", "益智", "2-4 人"]
+    }
+  ]
+}
